@@ -1,127 +1,29 @@
-from datetime import datetime
-from pathlib import Path
-import os
-
+from ..base.labeled import LabeledDataset
 from PIL import Image, ImageDraw
-import pandas as pd
 import numpy as np
-from shapely import from_wkt
-from milliontrees.datasets.milliontrees_dataset import MillionTreesDataset
-from milliontrees.common.grouper import CombinatorialGrouper
-from milliontrees.common.metrics.all_metrics import Accuracy, Recall, F1
-from albumentations import A, ToTensorV2
-from torchvision.tv_tensors import BoundingBoxes, Mask
-import torchvision.transforms as transforms
-from torchvision.ops import masks_to_boxes
 import torch
+from shapely.wkt import loads as from_wkt
+from torchvision.transforms import transforms
+from torchvision.ops import masks_to_boxes
+from ..utils import Mask, BoundingBoxes
 
-class TreePolygonsDataset(MillionTreesDataset):
-    """The TreePolygons dataset is a collection of tree annotations annotated
-    as multi-point polygons locations.
-
-    The dataset is comprised of many sources from across the world. There are 5 splits:
-        - Random: 80% of the data randomly split into train and 20% in test
-        - location: 80% of the locations randomly split into train and 20% in test
-    Supported `split_scheme`:
-        - 'official'
-    Input (x):
-        RGB images from camera traps
-    Label (y):
-        y is a n x 2-dimensional vector where each line represents a point coordinate (x, y)
-    Metadata:
-        Each image is annotated with the following metadata
-            - location (int): location id
-            - source (int): source id
-
-    License:
-        This dataset is distributed under Creative Commons Attribution License
-    """
-    _dataset_name = 'TreePolygons'
+class TreePolygonsDataset(LabeledDataset):
+    """TreePolygons labeled dataset."""
+    
+    _dataset_name = "TreePolygons"
     _versions_dict = {
-        '0.0': {
-            'download_url':
-                'https://github.com/weecology/MillionTrees/releases/latest/download/TreePolygons_v0.0.zip',
-            'compressed_size':
-                17112645
+        "1.0": {
+            "download_url": "",
+            "compressed_size": 0,
         }
     }
-
-    def __init__(self,
-                 version=None,
-                 root_dir='data',
-                 download=False,
-                 split_scheme='official'):
-
-        self._version = version
-        self._split_scheme = split_scheme
-        if self._split_scheme != 'official':
-            raise ValueError(
-                f'Split scheme {self._split_scheme} not recognized')
-        # path
-        self._data_dir = Path(self.initialize_data_dir(root_dir, download))
-
-        # Load splits
-        df = pd.read_csv(self._data_dir / '{}.csv'.format(split_scheme))
-
-        # Splits
-        self._split_dict = {
-            'train': 0,
-            'val': 1,
-            'test': 2,
-            'id_val': 3,
-            'id_test': 4
-        }
-        self._split_names = {
-            'train': 'Train',
-            'val': 'Validation (OOD/Trans)',
-            'test': 'Test (OOD/Trans)',
-            'id_val': 'Validation (ID/Cis)',
-            'id_test': 'Test (ID/Cis)'
-        }
-
-        unique_files = df.drop_duplicates(subset=['filename'], inplace=False).reset_index(drop=True)
-        unique_files['split_id'] = unique_files['split'].apply(lambda x: self._split_dict[x])
-        self._split_array = unique_files['split_id'].values
-
-        df['split_id'] = df['split'].apply(lambda x: self._split_dict[x])
-        self._split_array = df['split_id'].values
-        
-        # Filenames
-        self._input_array = unique_files.filename
-        
-        # Create lookup table for which index to select for each filename
-        self._input_lookup = df.groupby('filename').apply(lambda x: x.index.values).to_dict()
-
-        # Convert each polygon to shapely objects
+    
+    def _process_labels(self, df: pd.DataFrame) -> None:
         for i in range(len(df)):
             df.loc[i, 'polygon'] = from_wkt(df.loc[i, 'polygon'])
-
         self._y_array = list(df['polygon'].values)
-
-        # Labels -> just 'Tree'
         self._n_classes = 1
-
-        # Not clear what this is, since we have a polygon, unknown size
         self._y_size = 4
-
-        # Create source locations with a numeric ID
-        df["source_id"] = df.source.astype('category').cat.codes
-
-        # Location/group info
-        n_groups = max(df['source_id']) + 1
-        self._n_groups = n_groups
-        assert len(np.unique(df['source_id'])) == self._n_groups
-
-        self._metadata_array = np.stack([df['source_id'].values], axis=1)
-        self._metadata_fields = ['source_id']
-
-        # eval grouper
-        self._eval_grouper = CombinatorialGrouper(dataset=self,
-                                                  groupby_fields=(['source_id'
-                                                                  ]))
-
-        super().__init__(root_dir, download, split_scheme)
-
     def __getitem__(self, idx):
         # Any transformations are handled by the WILDSSubset
         # since different subsets (e.g., train vs test) might have different transforms
