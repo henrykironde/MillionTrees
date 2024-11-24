@@ -1,8 +1,15 @@
 class MillionTreesDataset:
     """Shared dataset class for all MillionTrees datasets."""
     
+    DEFAULT_SPLITS = {'train': 0, 'val': 1, 'test': 2}
+    DEFAULT_SPLIT_NAMES = {
+        'train': 'Train',
+        'val': 'Validation',
+        'test': 'Test'
+    }
+    
     def check_init(self):
-        """Check dataset configuration."""
+        """Check that the dataset is properly configured."""
         required_attrs = [
             '_dataset_name', '_data_dir', '_split_scheme', '_split_array',
             '_y_array', '_y_size', '_metadata_fields', '_metadata_array'
@@ -14,7 +21,7 @@ class MillionTreesDataset:
         if not os.path.exists(self.data_dir):
             raise ValueError(f'{self.data_dir} does not exist yet.')
 
-        # Check splits
+        # Check splits match
         assert self.split_dict.keys() == self.split_names.keys()
         
         # Check arrays
@@ -25,3 +32,7 @@ class MillionTreesDataset:
         # Check metadata
         assert len(self.metadata_array.shape) == 2
         assert len(self.metadata_fields) == self.metadata_array.shape[1]
+
+        # Include y in metadata_fields if y_size == 1
+        if self.y_size == 1:
+            assert 'y' in self.metadata_fields
