@@ -77,3 +77,7 @@ class LabeledDataset(MillionTreesDataset):
     
     def _create_metadata_array(self, df: pd.DataFrame) -> None:
         self._metadata_array = np.stack([df['source_id'].values], axis=1)
+
+    def _process_labels(self, df: pd.DataFrame) -> None:
+        self._y_array = df["y"].values
+        self._y_size = 1
