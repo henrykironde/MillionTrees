@@ -42,68 +42,8 @@ class UnlabeledDataset(MillionTreesDataset):
         )
         
         super().__init__(root_dir, download, split_scheme)
-class UnlabeledDataset(MillionTreesDataset):
-    """Base class for unlabeled MillionTrees datasets."""
-    
-    _metadata_fields = ["source_id", "location", "datetime", "y"]
     
     def _setup_dataset(self) -> None:
-        df = self._load_metadata()
-        self._process_splits(df)
-        self._process_filenames(df)
-        self._process_groups(df)
-        self._process_labels(df)
-        self._create_metadata_array(df)
-    
-    def _process_splits(self, df: pd.DataFrame) -> None:
-        df["split_id"] = 0
-        self._split_array = df["split_id"].values
-    
-    def _process_filenames(self, df: pd.DataFrame) -> None:
-        self._input_array = df["filename"].values
-        self._input_lookup = {fn: [i] for i, fn in enumerate(df["filename"])}
-    
-    def _process_groups(self, df: pd.DataFrame) -> None:
-        self._n_groups = df["location"].nunique()
-    
-    def _process_labels(self, df: pd.DataFrame) -> None:
-        self._y_array = df["y"].values
-        self._y_size = 1
-    
-    def _create_metadata_array(self, df: pd.DataFrame) -> None:
-        metadata = [df[field].values for field in self._metadata_fields]
-        self._metadata_array = np.stack(metadata, axis=1)
-    def _setup_dataset(self) -> None:
-        df = self._load_metadata()
-        self._process_splits(df)
-        self._process_filenames(df)
-        self._process_groups(df)
-        self._process_labels(df)
-        self._create_metadata_array(df)
-    
-    def _load_metadata(self) -> pd.DataFrame:
-        return pd.read_csv(self._data_dir / "metadata.csv")
-    
-    def _process_splits(self, df: pd.DataFrame) -> None:
-        df["split_id"] = 0
-        self._split_array = df["split_id"].values
-    
-    def _process_filenames(self, df: pd.DataFrame) -> None:
-        self._input_array = df["filename"].values
-        self._input_lookup = {fn: [i] for i, fn in enumerate(df["filename"])}
-    
-    def _process_groups(self, df: pd.DataFrame) -> None:
-        df["source_id"] = df.location.astype('category').cat.codes
-        self._n_groups = max(df['source_id']) + 1
-        assert len(np.unique(df['source_id'])) == self._n_groups
-    
-    def _process_labels(self, df: pd.DataFrame) -> None:
-        self._y_array = df["y"].values if "y" in df.columns else np.zeros(len(df))
-        self._y_size = 1
-    
-    def _create_metadata_array(self, df: pd.DataFrame) -> None:
-        metadata = [df[field].values for field in self._metadata_fields if field in df.columns]
-        self._metadata_array = np.stack(metadata, axis=1)    def _setup_dataset(self) -> None:
         df = self._load_metadata()
         self._process_splits(df)
         self._process_filenames(df)
