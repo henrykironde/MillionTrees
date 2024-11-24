@@ -33,6 +33,7 @@ class UnlabeledDataset(MillionTreesDataset):
         if self._split_scheme != "official":
             raise ValueError(f"Split scheme {self._split_scheme} not recognized")
             
+        super().__init__(root_dir, download, split_scheme)
         self._data_dir = Path(self.initialize_data_dir(root_dir, download))
         self._setup_dataset()
         

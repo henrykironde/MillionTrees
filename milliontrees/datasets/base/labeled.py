@@ -39,6 +39,7 @@ class LabeledDataset(MillionTreesDataset):
         if self._split_scheme not in ['official', 'random']:
             raise ValueError(f'Split scheme {self._split_scheme} not recognized')
             
+        super().__init__(root_dir, download, split_scheme)
         self._data_dir = Path(self.initialize_data_dir(root_dir, download))
         self._setup_dataset()
         
@@ -75,6 +76,12 @@ class LabeledDataset(MillionTreesDataset):
         self._n_groups = max(df['source_id']) + 1
         assert len(np.unique(df['source_id'])) == self._n_groups
     
+    
+    def _process_labels(self, df: pd.DataFrame) -> None:
+        """Process labels from the metadata DataFrame."""
+        self._y_array = df["y"].values
+        self._y_size = 1
+
     def _create_metadata_array(self, df: pd.DataFrame) -> None:
         self._metadata_array = np.stack([df['source_id'].values], axis=1)
 
