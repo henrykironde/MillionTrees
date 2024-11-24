@@ -81,3 +81,7 @@ class LabeledDataset(MillionTreesDataset):
     def _process_labels(self, df: pd.DataFrame) -> None:
         self._y_array = df["y"].values
         self._y_size = 1
+
+    def _process_labels(self, df: pd.DataFrame) -> None:
+        self._y_array = df["y"].values
+        self._y_size = 1
