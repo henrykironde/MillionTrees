@@ -9,7 +9,13 @@ from ..utils import CombinatorialGrouper
 class LabeledDataset(MillionTreesDataset):
     """Base class for labeled MillionTrees datasets."""
     
-    _metadata_fields = ["source_id"]
+    _metadata_fields = [
+        "source_id",
+        "source",
+        "sequence",
+        "datetime",
+        "y"
+    ]
     
     _split_dict = {
         'train': 0,
@@ -39,7 +45,6 @@ class LabeledDataset(MillionTreesDataset):
         if self._split_scheme not in ['official', 'random']:
             raise ValueError(f'Split scheme {self._split_scheme} not recognized')
             
-        super().__init__(root_dir, download, split_scheme)
         self._data_dir = Path(self.initialize_data_dir(root_dir, download))
         self._setup_dataset()
         
@@ -49,7 +54,7 @@ class LabeledDataset(MillionTreesDataset):
         )
         
         super().__init__(root_dir, download, split_scheme)
-        
+    
     def _setup_dataset(self) -> None:
         df = self._load_metadata()
         self._process_splits(df)
@@ -76,25 +81,13 @@ class LabeledDataset(MillionTreesDataset):
         self._n_groups = max(df['source_id']) + 1
         assert len(np.unique(df['source_id'])) == self._n_groups
     
-    
     def _process_labels(self, df: pd.DataFrame) -> None:
         """Process labels from the metadata DataFrame."""
-        self._y_array = df["y"].values
+        self._y_array = df["y"].values if "y" in df.columns else np.zeros(len(df))
         self._y_size = 1
-
+df["y"].values
+        self._y_size = 1
     
-    def _process_labels(self, df: pd.DataFrame) -> None:
-        """Process labels from the metadata DataFrame."""
-        self._y_array = df["y"].values
-        self._y_size = 1
-
     def _create_metadata_array(self, df: pd.DataFrame) -> None:
-        self._metadata_array = np.stack([df['source_id'].values], axis=1)
-
-    def _process_labels(self, df: pd.DataFrame) -> None:
-        self._y_array = df["y"].values
-        self._y_size = 1
-
-    def _process_labels(self, df: pd.DataFrame) -> None:
-        self._y_array = df["y"].values
-        self._y_size = 1
+        metadata = [df[field].values for field in self._metadata_fields if field in df.columns]
+        self._metadata_array = np.stack(metadata, axis=1)
